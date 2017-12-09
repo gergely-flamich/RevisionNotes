@@ -92,9 +92,8 @@ Return Addresses
 JVM Storage Types
 ----------------------------------------------------------------------
 
-+--------------|------|--------------------+
 | Storage Type | Size | Computational Type |
-+--------------|------|--------------------+
+|--------------|:----:|:-------------------|
 | byte         |    8 | int                |
 | char         |   16 | int                |
 | short        |   16 | int                |
@@ -102,7 +101,6 @@ JVM Storage Types
 | long         |   64 | long               |
 | float        |   32 | float              |
 | double       |   64 | double             |
-+--------------|------|--------------------+
 
 
 JVM Memory Structure
@@ -413,7 +411,8 @@ Identical bits of computation get replaced by one instance
 Example:
 ```Haskell
 f x = sqr x + sqr x
-```]
+```
+
 to:
 ```Haskell
 f x = let q = sqr x in q + q
@@ -638,6 +637,64 @@ Examples:
  - Error messages in terms of host
  - sharing and recursion are troublesome
  
+
+Semantic Analysis
+======================================================================
+
+Semantics:
+ - refers to meaning
+ 
+Semantic Analysis:
+ - non-structural issues
+ - types
+ - forward declarations
+ - scoping/namespace
+ - AST simplification
+ 
+Symbol Table/ Environment: map identifier to internal information
+
+Adding conflicting entries to the environment:
+ - error in same scope
+ - shadowing in nested scopes
+ 
+### Damas-Milner Inference Algorithm
+
+Infers the most general polymorphic type.
+
+In the type system, we construct the answer by building a set of constraints (abstraction)
+and then resolving them (unification).
+
+
+Type and Effect Systems
+----------------------------------------------------------------------
+
+Effects capture behavioural information:
+ - cost,
+ - side-effects
+ - ownership
+ 
+Algorithm W can be easily modified to also infer effects, by carrying the
+effect set with the type information.
+
+Dependent Types
+----------------------------------------------------------------------
+Type depends on values. Values can be computed in types at compile time
+
+```Idris
+append: List n a -> List m a -> List (n + m) a
+append Nil ys = ys
+append (x :: xs) ys = x :: append xs ys
+```
+
+can be used for semantic analysis
+can be used to prove soundness of properties described by types.
+
+Types can capture computed properties:
+ - exec. time, energy usage, parallelism
+ - prove that they hold always
+ 
+
+
 Lexical Analysis
 ======================================================================
 
@@ -666,3 +723,57 @@ Abstract Syntax
  - used to simplify the translation process
  - usually denoted by AST
  - NOT a parse tree (doesn't have the concrete syntax details)
+
+Predictive / Recursive-descent Parsing
+----------------------------------------------------------------------
+does not work for all context-free grammars (CFGs)
+
+conflict: the same sentence has multiple derivations, might need to rewrite grammar
+
+First set: defined for every string, it is the set of all terminals
+that can begin any string derived from that string
+
+Follow set: set of all terminals that can immediately follow a symbol
+
+Nullable: a symbol is nullable if it can derive the empty string
+
+Algorithm:
+ - for each T in FIRST(gamma), parsetable[X, T] = X -> gamma
+ - if gamma is nullable, for each T in FOLLOW(gamma) = parsetable [X, T] = X -> gamma
+ 
+LL Grammars
+----------------------------------------------------------------------
+LL(k): Left-to-right, Leftmost derivation, k-symbol lookahead
+
+Parse tablesfor ambiguous grammars contain duplicate entries.
+
+Unambiguous grammars are LL(1)
+
+LR Grammars
+----------------------------------------------------------------------
+LR(k): Left-to-right, Rightmost derivation, k-symbol lookahead
+
+LR(k) parsers can see every token corresponding to the entire RHS of the
+production + k symbols
+
+CFGs are LR(1).
+
+Algorithm:
+ - shifting: move first input token to top of stack
+ - reduce: choose grammar rule and replace the production with the rule
+ - shifting EOF is called accepting
+ 
+uses a DFA to determine when to shift and when to reduce, applied to the stack, not the input.
+
+Actions:
+ - s n: shift to state n
+ - g n: goto state n
+ - r k: reduce by rule k
+ - a: accept
+ - _: error
+ 
+Conflicts:
+ - shift/reduce: usually resolved by shifting (choose the longest production)
+ - reduce/reduce: cannot decide which rule to reduce by, BIG error, probably need to rewrite grammar
+ - shift/shift: just shift
+ 

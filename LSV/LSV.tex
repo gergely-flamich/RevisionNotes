@@ -1,0 +1,260 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+
+\newcommand{\U}{\,\,\mathcal{U}\,\,}
+\newcommand{\N}{\,\,\mathcal{N}\,\,}
+
+\begin{document}
+
+\section{Introduction}
+\paragraph{Reliability:} continuity of service
+\paragraph{Availability:} readiness for usage
+\paragraph{Security:} e.g. preservation of confidentiality
+\paragraph{Safety:} avoid catastrophic consequences
+
+\paragraph{Fault prevention:} system does not contain faults
+\paragraph{Fault tolerance:} system can recover from a system failure
+\paragraph{Fail safety:} in case of failure, no fatal consequences can occur 
+
+\paragraph{}
+Preventing design bugs in hardware is important, because:
+\begin{itemize}
+\item costs are higher
+\item bug fixes are usually not possible
+\item quality expectations are higher
+\item time a new product gets on the market severely impacts revenue
+\end{itemize}
+
+\paragraph{Validation:} Are we building the right thing?
+\paragraph{Verification:} Are we building the thing right?
+
+\paragraph{Problem with testing:} Can uncover faults, but doesn't guarantee
+their absence.
+
+\paragraph{Formal verification} can guarantee fault freeness.
+
+\section{Model Checking}
+\paragraph{Model:} formal abstraction of the system of interest
+\paragraph{Constraints:} system requirements specified with precise logical statements 
+A model checker automaticall checks the model against the constraints. If
+something violates the constraints, an execution path is returned.
+
+\paragraph{Examples of system properties}
+\begin{itemize}
+\item functional correctness: system behaving as expected?
+\item reachability: can we end up in a deadlock?
+\item safety: something ``bad'' never happens
+\item liveness: something ``good'' will eventually happen
+\item fairness: can, under certain conditions, an event occur repeatedly?
+\item real-time: is the system acting in time?
+\end{itemize}
+
+Must ensure that model is \textbf{as simle as possible}: prevent state explosion.
+
+\paragraph{Livelock:} a procass is always able to request resource, but always refused.
+\paragraph{Unconditional fairness:} Every process executes infinitely often
+\paragraph{Strong fairness:} Every process that can run, will run
+\paragraph{Weak fairness:} Every process that can continuously run from a
+certain point onwards, will execute infinitely often.
+
+\section{PROMELA: Process Meta Language}
+\paragraph{}
+Spec language used in \textbf{Spin}.
+Used to check \textbf{concurrent systems}:
+\begin{itemize}
+\item interleaved processes (stuff behaving independently)
+\item shared global variables
+\item synchronous/asynchronous channels
+\end{itemize}
+
+Can label certain parts of the model that are of interest and then assert stuff
+only about those states.
+
+Can check for desirable end states.
+
+\paragraph{Checking liveness in Spin:} annotate program with
+\texttt{progress[a-zA-Z0-9]*:} labels, and it will be checked if we pass through
+the labels infinitely often.
+
+\paragraph{Trace constraint:} can restrain the internal interleaving to only
+perform certain kinds of transitions (i.e., some channels only send/receive one
+kind of message, always alternating, etc.)
+\\
+A trace \textbf{synchronises} with the spec
+
+\paragraph{Never claim:} define an undesired system behaviour and check if it
+ever holds, and reports if it does.
+\\
+It \textit{succeeds} if it terminates of passes through its accept labels
+infintely often. If no transition is possible in the never claim, the claim
+automaton will stop search in that branch and backtrack.
+A never claim is \textbf{interleaved} with the model spec. (It always executes
+before the next transition)
+
+\section{LTL: Linear Temporal Logic}
+All valid LTL formulae may be derived from the grammar
+\[
+  \phi ::= \text{true} \,|\, \text{false} \,|\, p \,|\, \neg \,|\, \land \,|\,
+  \lor \,|\, ( \phi ) \,|\, \diamond \phi \,|\, \square \phi \,|\, \phi \U \phi
+\]
+where $p$ is an \textbf{atomic proposition} (basically just a Boolean variable).
+They are \textbf{simple} known facts about the model at a particular state.
+\paragraph{Examples}
+\begin{itemize}
+\item Invariant: $\square p$
+\item Reply: $p \Rightarrow \diamond q$
+\item Guaranteed Reply: $\square(p \Rightarrow \N (\diamond q))$
+\item Infinitely often: $\square\diamond p$
+\item Eventually always: $\diamond\square p$
+\item Exclusion: $\square(p \Rightarrow \neg q)$
+\end{itemize}
+
+\paragraph{Equivalences}
+\begin{itemize}
+\item $\neg\square p \equiv \diamond\neg p$
+\item $\neg\diamond p \equiv \square \diamond\neg p$
+\item $\square p \land q \equiv \square p \land \square q$ 
+\item $\diamond p \lor q \equiv \diamond p \lor \diamond q$ 
+\item $\diamond p \equiv \text{true} \U p$
+\end{itemize}
+
+\paragraph{Transition System} a TS is defined as $TS = (S, Act, T, I, AP, L)$
+\begin{itemize}
+\item $S$: set of all possible states (nodes of the multigraph)
+\item $Act$: set of all possible transitions
+\item $T \subseteq S \times Act \times S$: transition table (edges of the multigraph)
+\item $I \subseteq S$: initial states
+\item $AP$: set of atomic propositions
+\item $L: S\to 2^{AP}$: labelling function (state labels)
+\end{itemize}
+A TS if \textbf{finite} iff $S, Act$ and $AP$ are finite.
+A state satisfies a formula if its label set satisfies it, i.e.
+\[
+  s \vDash \phi \equiv L(s) \vDash \phi
+\]
+\paragraph{Definitions}
+\begin{itemize}
+\item \textbf{direct $\alpha$-successors of a state $s$}: $\text{Post}(s, \alpha) = \{s'
+  \in S\,|\,(s,\alpha,s') \in T\}$ for $s\in S$ and $\alpha \in Act$. (States
+  that are pointed to by an $\alpha$ arrow from $s$.)
+
+\item \textbf{$\alpha$-predecessors of $s$}: $\text{Pre}(s, \alpha) = \{s'
+  \in S\,|\,(s',\alpha,s) \in T\}$ for $s\in S$ and $\alpha \in Act$. (States
+  that point to $s$ with an $\alpha$ arrow from $s$.)
+
+\item \textbf{terminal state}: $s \in S $ is terminal iff $\text{Post}(s) = \emptyset$.
+
+\item \textbf{finite execution fragment (FEF)}: for a TS, a FEF is
+  \[
+    \rho = s_0 \xrightarrow{\alpha_1} s_1 \xrightarrow{\alpha_2} \hdots
+    \xrightarrow{\alpha_n} s_n
+  \]
+  where $s_i \in S$ and $\alpha_j \in Act$.
+\item \textbf{maximal execution fragment (MEF)}: FEF ending in a terminal state or an
+  infinite EF.
+
+\item \textbf{initial execution fragment (IEF)}: EF whose first state is an
+  initial state.
+
+\item \textbf{execution of a TS}: IEF + MEF
+
+\item \textbf{reachable state}: a state $s \in S$ is reachable iff
+  \[
+    \exists \rho. \quad \rho = s_0 \xrightarrow{\alpha_1} \hdots
+    \xrightarrow{\alpha_n} s_n
+  \]
+  where $s_0 \in I$ and $s_n = s$ (you can transition into it in a finite amount
+  of time).
+\end{itemize}
+
+\section{Data-Dependent Systems}
+Want to deal with transitions dependent on some ''global state``.
+In a TS: use nondeterminism (this doesn't scale well), or \textbf{conditional transitions}.
+
+\paragraph{Conditional transition:} $g:\alpha$ where $\alpha$ is an action and
+$g$ is a boolean condition (guard).
+
+\paragraph{Definitions (bonkers)}
+\begin{itemize}
+\item \textbf{set of typed variables}: \texttt{Var}
+\item \textbf{domain of a variable}: the type of $x \in \texttt{Var}$ is
+  (inexplicably) called its domain, denoted $\text{dom}(x)$.
+
+\item \textbf{evaluations}: The set of \textbf{evaluations} over \texttt{Var} is
+  the set that contains how we allow variables to evaluate and is denoted
+  $\text{Eval}(\texttt{Var})$. e.g. we might say
+  that $x$ can evaluate to $1, 42$ and $y$ can evaluate to ``banana'',
+  ``apple'', respectively. Then we
+  can define $\eta_1(x)=1,\,\,\eta_1(y)=\text{``banana'''}\,\,\eta_2(x)=42,\,\,\eta_2(y)=$ ``apple'', and hence
+  $\text{Eval}(\texttt{Var}) = \{\eta_1, \eta_2\}$.
+
+\item \textbf{condition set}: the \textbf{condition set} over \texttt{Var} is a
+  set of boolean conditions involving the elements of \texttt{Var}.
+
+\item \textbf{Effect function}: indicates how variables evolve if we perform
+  some action. Namely, $\text{Effect}: Act \times \text{Eval}(Var) \rightarrow
+  \text{Eval}(\texttt{Var})$. e.g. if $\alpha$ represents incrementing $x$, and
+  $\eta_i(x) = i$, then
+  \[
+    \text{Effect}(\alpha, \eta_i) = \eta_{i + 1}.
+  \]
+  Since this is a function, we can evaluate it:
+  \[
+    \text{Effect}(\alpha, \eta_i)(x) = \eta_{i + 1}(x) = i + 1.
+  \]
+
+\item \textbf{Program Graph}: a PG is $PG = (Loc, Act, \text{Effect}, C_\dagger, Loc_0,
+  g_0)$, where
+  \begin{itemize}
+  \item $Loc$: set of locations, because the word state is not good anymore.
+    (the justification being that the some location can be in different ``states'')
+  \item $Act$: $Act$ is still good though, set of actions 
+  \item $\text{Effect}$: see above
+  \item $C_\dagger$: $C_\dagger \subseteq Loc \times
+    \text{Cond}(\texttt{Var})\times Act \times Loc$, the conditional transition
+    table. A generic element looks like
+    \[
+      l_1 \xrightarrow{g:\alpha} l_2
+    \]
+    i.e. if $g$ holds when we perform $\alpha$ in $l_1$, we transition into $l_2$.
+  \item $Loc_0$: $Loc_0 \in Loc$ set of initial locations
+  \item $g_0$: $g_0 \in \text{Cond}(\texttt{Var})$ is the initial condition
+    (basically ensuring that our variables exist and have some initial value).
+  \end{itemize}
+\end{itemize}
+A PG can be converted into a TS, by ``unfolding'' it, i.e. adding a state for
+every location + evaluation combo, and a transition between them if we the guard
+of the transition connecting the two locations is true.
+
+\section{Parallelism}
+\paragraph{}
+TSs are good for \textbf{sequential} systems.
+How do we model \textbf{parallel} systems?
+Depends on how \textit{subsystem}s communticate: no communication, synchronous
+comm., asynchronous comm.
+\[
+  TS = TS_1 \,\,||\,\, TS_2 \,\,|| \hdots ||\,\,TS_n
+\]
+where $||$ is the \textbf{parallel composition operator}, meaning that the
+$TS_i$ execute at the same time.
+
+\paragraph{Interleaving} is choosing the order of execution for the $TS_i$. Two
+TSs interleaved is the Cartesian product of their states and union of their
+action sets and atomic props, and is denoted $TS_1 ||| TS_2$, where $|||$ is
+called the \textbf{interleaving operator}. Note: interleaving doesn't reflect
+the expected behaviour of shared variables.\\
+For programs with shared variables, we interleave PGs, and then unfold them.
+\paragraph{Concurrency} is nondeterministic interleaving
+\paragraph{Independent actions} are actions that can be interleaved, and their
+effect doesn't change
+\paragraph{Local variables} of $PG_1$ and $PG_2$ are $\texttt{Var}_1 \setminus
+\texttt{Var}_2$ and vice versa.
+\paragraph{Global Variables} are $\texttt{Var}_1 \cap
+\texttt{Var}_2$.
+
+\paragraph{Note:} Look at Lecture 8 - 10 for the graphs.
+\end{document}

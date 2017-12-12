@@ -56,10 +56,12 @@ something violates the constraints, an execution path is returned.
 Must ensure that model is \textbf{as simle as possible}: prevent state explosion.
 
 \paragraph{Livelock:} a procass is always able to request resource, but always refused.
-\paragraph{Unconditional fairness:} Every process executes infinitely often
-\paragraph{Strong fairness:} Every process that can run, will run
+\paragraph{Unconditional fairness:} Every process executes infinitely often.
+($\square\diamond p$)
+\paragraph{Strong fairness:} Every process that can run, will run.
+$\square\diamond q \Rightarrow \square\diamond p$
 \paragraph{Weak fairness:} Every process that can continuously run from a
-certain point onwards, will execute infinitely often.
+certain point onwards, will execute infinitely often. $\diamond\square q \Rightarrow \square\diamond p$
 
 \section{PROMELA: Process Meta Language}
 \paragraph{}
@@ -103,6 +105,7 @@ All valid LTL formulae may be derived from the grammar
 \]
 where $p$ is an \textbf{atomic proposition} (basically just a Boolean variable).
 They are \textbf{simple} known facts about the model at a particular state.
+\paragraph{Note:} next can be denoted $X, \N$ or $\circ$.
 \paragraph{Examples}
 \begin{itemize}
 \item Invariant: $\square p$
@@ -169,6 +172,12 @@ A state satisfies a formula if its label set satisfies it, i.e.
   \]
   where $s_0 \in I$ and $s_n = s$ (you can transition into it in a finite amount
   of time).
+\item \textbf{state satisfying LTL formula}: a state $s \in S$ satisfies an LTL
+  claim $\phi$ iff all paths starting in $s$ satisfy it.
+\item \textbf{TS satisfying LTL formula}: a TS satisfies and LTL claim iff all
+  of its initial paths satisfy it. \textbf{Note:} since one path might satisfy
+  a claim, and another might not, it is possible that a TS satisfies neither a
+  claim nor its negation!
 \end{itemize}
 
 \section{Data-Dependent Systems}
@@ -228,8 +237,11 @@ $g$ is a boolean condition (guard).
 \end{itemize}
 A PG can be converted into a TS, by ``unfolding'' it, i.e. adding a state for
 every location + evaluation combo, and a transition between them if we the guard
-of the transition connecting the two locations is true.
-
+of the transition connecting the two locations is true. Formally:
+\[
+  \frac{l_1 \xrightarrow{g:\alpha} l_2 \land \eta \vDash g}{\langle l_1, \eta
+    \rangle \xrightarrow{\alpha} \langle l_2, \text{Effect}(\alpha, \eta) \rangle}
+\]
 \section{Parallelism}
 \paragraph{}
 TSs are good for \textbf{sequential} systems.
@@ -257,4 +269,164 @@ effect doesn't change
 \texttt{Var}_2$.
 
 \paragraph{Note:} Look at Lecture 8 - 10 for the graphs.
+
+\subsection{Handshaking}
+Processes interact at the same time through sychronous communication.
+handshaking done through shared actions: for $TS_1$, $TS_2$ and $H \subseteq
+Act_1 \cap Act_2$. Then
+\[
+  TS_1 ||_H TS_2 \equiv (S_1 \times S_2, Act_1 \cup Act_2, T, I_1 \times I_2,
+  AP_1 \cup AP_2, L)
+\]
+where if an action is not in $H$, then we add two arrows for the two separate
+state tuples, whereas if the action is in $H$, then the states connected by
+$\alpha$ are merged. Formally:
+\[
+  \forall \alpha \not\in H. \quad \frac{s_1 \xrightarrow{\alpha} s_1'}{\langle
+    s_1, s_2 \rangle \xrightarrow{\alpha} \langle
+    s_1', s_2 \rangle} \quad\text{and}\quad \frac{s_2 \xrightarrow{\alpha} s_2'}{\langle
+    s_1, s_2 \rangle \xrightarrow{\alpha} \langle
+    s_1, s_2' \rangle} \quad\text{(interleaving)}
+\]
+and
+\[
+  \forall \alpha \in H. \quad \frac{s_1 \xrightarrow{\alpha} s_1' \land s_2 \xrightarrow{\alpha} s_2'}{\langle
+    s_1, s_2 \rangle \xrightarrow{\alpha} \langle
+    s_1', s_2' \rangle}  \quad\text{(synchronisation)}
+\]
+
+\paragraph{Note:} $TS_1 ||_\emptyset = TS_1 ||| TS_2$.
+
+\section{Asynchronous communication}
+Processes communicate via channels.
+Many critical systems depend on time as well: train crossing, radiation machine,
+space shuttles etc.
+How to add time?
+\paragraph{Bad Approach:} use global ``clock variable'' and synchronise all
+transitions on it. Why it's bad: it's confusing, overly complex and error-prone.
+\paragraph{Good Approach:} Timed Automata
+\subsection{Timed Automata}
+Extend a program graph with a finite set of \textbf{clock variables}, which can
+only be \textbf{inspected} or \textbf{reset}. We can then use impose
+\textbf{clock constraints}: guards and time a PG spends in a state.
+\paragraph{definitons}
+\begin{itemize}
+\item \textbf{Timed Automaton}: $TA = PG + (C, Inv) $, where $C$ is the set of
+  clocks and $Inv: Loc \rightarrow CC(C)$ where $CC(C)$ is the set of clock
+  constraints.
+\item \textbf{Clock Reset}: $l_1 \xrightarrow{g:\alpha, D} l_2$ everything as in
+  the $PG$, but also reset all clocks to 0 in $D \subseteq C$.
+\item \textbf{Timelock}: if we can't leave a state before one of its invariants
+  expire (i.e. one of the clocks violates its time constraint).
+\item \textbf{Interleaving and handshaking}: defined analogously to PGs, but
+  when we synchronise, we union the clocks and the constraints too. 
+\end{itemize}
+
+\paragraph{Note:} See Lecture 11-13 for graphs.
+
+\section{CTL: Computational Tree Logic}
+want to express constraints about the paths: LTL talks about all executions, no
+good.
+Solution: CTL.
+\paragraph{Definitions}
+\begin{itemize}
+\item \textbf{CTL formula} a valid CTL claim can be decomposed into
+  \textbf{State formulae} and \textbf{Path formulae}. It can be derived from the
+  following and only the following grammar:
+  \begin{gather*}
+    \Phi ::= \text{true} \,\,|\,\, a\,\,|\,\, \Phi \land \Phi \,\,|\,\, \neg
+    \Phi\,\,|\,\, \exists \phi\,\,|\,\,\forall \phi\quad \textbf{(State Formulae)}\\
+    \phi ::= \N \Phi\,\,|\,\, \Phi \U \Phi\quad \textbf{(Path Formulae)}
+  \end{gather*}
+  Other operators may be derived from the above.
+  \\
+  $\exists \phi$ holds in a state $s$ iff there is at least one path from $s$
+  that satisfies $\phi$.
+  \\
+  $\forall \phi$ holds in a state iff all paths from it satisfy $\phi$
+  \textbf{Note:} if the second argument of $\U$ never holds, it is false.
+\item \textbf{Satisfaction Set}: $\text{Sat}_{TS}(\Phi) = \{s \in S\,|\,s\vDash
+  \Phi\}$, i.e. the states in the TS that satisfy the state formula. (NOT just
+  the initial states!)
+\item \textbf{TS satisfies CTL claim}: if all the inital states satisfy the
+  claim. Formally: $I \subseteq \text{Sat}_{TS}(\Phi)$.
+\end{itemize}
+\paragraph{Model checking a TS against a CTL claim:} recursively build all the
+satisfaction sets starting from the terminal states (including the end-point of
+loops), then check if $I \subseteq \text{Sat}_{TS}(\Phi)$.
+\paragraph{Examples}
+\begin{itemize}
+\item $\exists\diamond P$: $P$ potentially holds (there is at least one path
+  where it holds at least for one state). ``There will be a day when it will
+  rain for some time''
+\item $\exists\square P$: $P$ potentially always hold (there is at least one
+  path where it always holds). ``There is a timeline where from now on it rains
+  until the end of time''
+\item $\forall\diamond P$: $P$ is inevitable (it will hold at some point for all
+  paths). ``I will die at some point, no matter what''.
+\item $\forall\square P$: $P$ is invariantly true (it holds from the point
+  onwards for all paths). ``2 + 2 = 4''.
+\item $\neg \exists \diamond \Phi = \forall \square \neg \Phi$
+\item $\forall\diamond \Phi = \forall (\text{true} \U \Phi)$
+\end{itemize}
+
+\section{TCTL: Timed CTL}
+Just like CTL, but with clocks added from timed automata.
+Doesn't have $\N$, only have
+\[
+  \phi ::= \Phi \U^J \Phi
+\]
+where $J$ is a non-negative interval of time until which the first argument must hold.
+\paragraph{Examples}
+\begin{itemize}
+\item $\exists\square^J \Phi$: there is a path where $\Phi$ holds during
+  interval $J$. ``There is a timeline where it will continuously rain between 11:00 and 15:00
+  tomorrow.''
+\item $\forall\square^J \Phi$: $\Phi$ always holds in the interval. ``In any
+  case I will sleep between midnight and 8 am''
+\end{itemize}
+\section{UPPAAL not examined}
+\section{Petri Nets}
+Graphical descriptions for distributed systems for behavioural analysis.
+\paragraph{Definitions}
+\begin{itemize}
+\item \textbf{Petri Net}: $N = (P, T, G)$, where
+  \begin{itemize}
+  \item $P$ set of places (nodes)
+  \item $T$ set of transitions 
+  \item $G$ directed graph linking places and transitions. Formally: $G
+    \subseteq (P \times T) \cup (T \times P)$
+  \end{itemize}
+\item \textbf{pre-transition regions}: $\text{pre}(t) = \{ p \in P \,|\, (p, t)
+  \in G\}$, the set of places from which we can transition using $t$.
+\item \textbf{post-transition regions}: $\text{post}(t) = \{ p \in P \,|\, (t, p)
+  \in G\}$, the set of places to which we can transition using $t$.
+\item \textbf{marking}: $M: P \rightarrow \mathbb{N}_0$, the number of tokens at
+  a place.
+\item \textbf{transition firing}: $t$ can fire under $M$ iff there is one token
+  in every element in the pre-transition set of $t$. Formally, $\forall p \in
+  \text{pre}(t)$, we have $M(p) \geq 1$. If a transition can fire, then we say
+  it is \textbf{enabled}. A firing takes a token from each of its pre-set
+  elements and moves one token to each element of its post-set.
+\item \textbf{concurrently enabled transitions}: The set of all transitions that
+  are enabled.
+\item \textbf{reachable markings} let $N$ a Petri Net and $M$ a marking for it,
+  then $\text{Reachable}(N, M) = \{M' | M' \,\,\text{is a marking for}\,\,N\}$,
+  such that there is a sequence of transitions through which we get to $M'$.
+  \\
+  \textbf{Note}: a marking for which there is no enabled transition signals a \textbf{deadlock}.
+\item \textbf{Reachability Graph}: the Petri Net equivalent of an unfolded
+  Program Graph, i.e.: it models how a Petri net can evolve, where the nodes are
+  the entire state current state (how many tokens are in every place) with the
+  set of enabled transitions being the edges. \\
+  \textbf{Note:} this may be an infinite graph.
+\item \textbf{Overlapping Graph}: generalised Reachability Graph, where if we
+  can have two markings where one marking $M$ has bigger values than some other
+  marking $M'$, then we merge the two markings together.
+\end{itemize}
+
+\paragraph{Note}: reachability of a marking from another is
+\textbf{undecidable}.
+\paragraph{Note}: the reachability of an overlapping marking given a marking $M$
+is decidable.
 \end{document}

@@ -2,6 +2,8 @@
 
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{float}
 
 \title{CS5014: Machine Learning, Revision Notes}
 \author{Gergely Flamich}
@@ -50,7 +52,189 @@ Then, the way we will perform prediction is by using the distribution
   \hat{Y} = f(\vec{X}, \theta).
 \]
 $f$ is usually referred to as the \textbf{model function}.
-\section{Regression Problems}
+\subsection{Machine Learning Pipeline}
+\begin{enumerate}
+\item Obtain data
+\item Clean data
+\item Visualise \& Analyse data
+\item Prepare data: augumentation, feature selection etc.
+\item Perform the learning task
+\item Evaluate algorithm
+\item Test algorithm
+\end{enumerate}
+\subsection{Flavours of ML}
+Supervised learning:
+\begin{itemize}
+\item Output is continuous: regression
+\item Output is discrete: classification
+\end{itemize}
+
+Unsupervised learning: Clustering
+\subsection{Common issues in ML}
+\begin{itemize}
+\item \textbf{Overfitting - High Variance}: The model is too specific to the
+  data. It fits it very well, but doesn't generalise well.
+\item \textbf{Underfitting - High Bias}: The model is too general, it doesn't
+  explain the training data well, and it doesn't explain new data that well either.
+\item \textbf{Data Leakage}: Some information from the test set ``leaks'' into
+  the training/ validation set, and so the model will be biased to the seen data.
+\item \textbf{Dataset bias}: The training or validation set is not
+  representative of the general domain of the problem. 
+\end{itemize}
+\section{Data Preparation Methods}
+\begin{itemize}
+\item \textbf{Cleaning}: Remove nonsensical/null values, put data in the right
+  format
+\item \textbf{Feature Extraction}: use raw features and combine/ transform them
+  to purify some information to aid learning: requires domain knowledge usually.
+\item \textbf{Feature Selection}: Improve interpretability and computational
+  feasibility. Remove unnecessary features (based on domain knowledge or
+  statistical analysis): univariate tests, forward stepwise selection, backward
+  stepwise selection etc.
+\item \textbf{One-Hot Encoding}: For classification tasks with $k$ classes, it is commonplace to
+  represent different classes as pairwise orthogonal unit vectors in $\Reals^k$.
+  This ensures that $\norm{c_i - c_j} = constant$ for every class, i.e. there is
+  no bias towards any class. Example:
+  \[
+    \begin{bmatrix}
+      c_1 \\
+      c_4 \\
+      c_3 \\
+      \vdots \\
+      c_2
+    \end{bmatrix}
+    \quad \to \quad
+    \begin{bmatrix}
+      1 & 0 & 0 & 0 \\
+      0 & 0 & 0 & 1 \\
+      0 & 0 & 1 & 0 \\
+      \vdots & \vdots & \vdots & \vdots \\
+      0 & 1 & 0 & 0
+    \end{bmatrix}
+  \]
+\item \textbf{Decorrelation}: remove linear dependencies from the features:
+  whitening, PCA.
+\item \textbf{Normalisation}:
+  \[
+    x_i \quad \to \quad \frac{x_i - \min{\vec{x}}}{\max{\vec{x}} - \min{\vec{x}}}.
+  \]
+\item \textbf{Standardisation}:
+  if $X_k$ is assumed to be symmetrically, or even better, normally distributed
+  with mean $\mu_k$ and STD $\sigma_k$, this gives better results than normalisation:
+  \[
+    x_i \quad \to \quad \frac{x_i - \mu_k}{\sigma_k} 
+  \]
+\item \textbf{Data Augmentation}: artificially generate more data from our
+  preexisting set by introducing small modifications to it.
+\end{itemize}
+\section{General ML Methodology}
+\subsection{Regularisation}
+\paragraph{Purpose:} Improve the generalisability of the model and prevent
+overfitting.
+\paragraph{General Idea:} Penalise an individual parameter growing too large.
+\paragraph{Example: Squared Loss}
+\[
+  L(\theta) = \norm{X\theta - \vec{y}}^2 \quad \to \quad J(\theta) = \norm{X\theta
+    - \vec{y}}^2 + \lambda\norm{\theta}^2
+\]
+for some \textbf{regularisation parameter} $\lambda \in \Reals^+$. If we
+regularise using the $L_2$ norm of $\theta$, then the algorithm is called
+\textbf{ridge regression}, if we use the $L_1$ norm, then it's called \textbf{lasso}.
+\subsection{Model Evaluation}
+\paragraph{Train-Validation-Test Split}
+Common ratios: 60 - 20 - 20, 80 - 10 - 10, etc.
+\begin{itemize}
+\item \textbf{Training data}: we train our model using the training data
+\item \textbf{Validation data}: we evaluate a trained model on the (preferrably)
+  unseen validation data according to some metric(s). Based the model
+  performance, we can tune hyperparameters/ choose a different model.
+\item \textbf{Test data}: Should always be unseen data to avoid bias in the
+  trained model towards previously seen data. If this is not done, it
+  constitutes data leakage and our results will be meaningless. The results on
+  the test data are the results that we usually report, because it tells us how
+  well our model generalises.
+\end{itemize}
+\paragraph{Cross Validation}:
+If we don't have enough data to perform a proper train-validation-test split, we
+perform cross-validation. We perform a train-test separation, say 80-20.
+Then, taking the training data, we split into $k$ equal portions. Then we train
+our models $k$ times on $k - 1$ different portions and validate on the one that
+was left out. Then, this helps mitigate some of the bias in our dataset. We call
+this k-fold CV.
+\paragraph{Stratified Sampling}: ensures consistent representation of classes in
+training and validation sets, by sampling each subpopulation (class) of the
+dataset independently, and then merging the results.
+\paragraph{Performance Metrics}:
+Regression:
+\begin{itemize}
+\item Squared error:
+  \[
+    SE = \norm{\vec{y} - \hat{\vec{y}}}^2_2
+  \]
+\item Absolute error:
+  \[
+    AE = \norm{\vec{u} - \hat{\vec{y}}}_1
+  \]
+\item Coefficient of determination: (sometimes called explained variance)
+  \[
+    R^2 = 1 - \frac{\sum_i (y_i - \hat{y_i})^2}{\sum_i (y_i - \bar{y})^2}
+  \]
+\item Root Mean Squared Error:
+  \[
+    RMSE = \sqrt{\frac{SE}{m}}
+  \]
+  RMSE is useful, because it has the same units as the data, so we can
+  directly observe how well our model is performing.
+\end{itemize}
+(Binary) Classification:
+\begin{itemize}
+\item Accuracy:
+  \[
+    \frac{TP + TN}{P + N}
+  \]
+\item Error rates - False Positive Rate:
+  \[
+    FPR = \frac{FP}{TN + FP}
+  \]
+  False Negative Rate:
+  \[
+    FNR = \frac{FN}{FN + TP}
+  \]
+\item Specificity:
+  \[
+    1 - FPR
+  \]
+\item Sensitivity:
+  \[
+    1 - FNR
+  \]
+\item Precision:
+  \[
+    \frac{TP}{TP + FP}
+  \]
+\item Recall:
+  \[
+    \frac{TP}{TP + FN}
+  \]
+\item F1 - score:
+  \[
+    2\frac{Prec \cdot Recall}{Prec + Recall}
+  \]
+\end{itemize}
+The above pairings of classification metrics are ``working against each other'':
+one of them increasing will mean a decrease of their pair.
+\paragraph{ROC Curve:} Receiver Operation Characteristic Curve: $TPR$ vs $FPR$
+\paragraph{Precision-Recall Curve:} duh
+\paragraph{Average Precision (AP):} integral of the precision recall curve
+\paragraph{Metrics for multiclass classification:}
+\begin{itemize}
+\item Report One-vs-All scores
+\item Confusion Matrix: for $k$ classes it is a $k \times k$ matrix $C =
+  [c_{ij}]$, where $c_{ij} = $ \# of how many times an object of class $c_j$ was
+  predicted to be class $c_i$. 
+\end{itemize}
+\section{Regression Methods}
+\subsection{Linear Regression}
 One of the simplest models $f$ relies on the further assumption that $Y$ depends
 linearly on $\vec{X}$. In particular,
 \[
@@ -87,6 +271,54 @@ Iterate
 \]
 for some appropriate $\alpha \in \Reals$. Then it can be shown that the $\theta$ converges
 to the minimal solution. $\alpha$ is called the \textbf{learning rate}.
+\paragraph{Regularised Normal Equation}
+\[
+  \theta = (X^TX + \lambda I)^{-1}X^T
+\]
+\subsubsection{Basis Expansion}
+Provided we have $k$ real features, we can modify our space in which we consider
+the linearity of our model. We can transform a set of observations $\vec{x}$ into the new
+space through an arbitrary function $h: \Reals^k \to \Reals^n$ by calculating
+$h(\vec{x})$.
+then, our model changes to:
+\[
+  f_\theta(X) = X\theta \quad \to \quad f_\theta(X) = h(X)\theta.
+\]
+Crucially, $f_\theta$ is still linear in the space defined by $h$, but the
+components of $h$ may be non-linear!
+\paragraph{Special Case:} Polynomial regression: the $h_i$ components of $h$ are
+different combinations of the input features.
+\subsection{Logistic Regression}
+Model the classification problem using the \textbf{logistic function}:
+\[
+  \sigma_{\theta}(\vec{x}) = \frac{1}{1 + e^{-\theta^T\vec{x}}}\quad\text{ where
+  } \vec{x}, \theta \in \Reals^{n \times 1}
+\]
+It is easy to see that $\sigma_\theta(\vec{x}) \geq 0.5$ iff $\theta^T\vec{x}
+\geq 0$ and less than $0.5$ otherwise.
+\[
+  B = \{\vec{x} \,\,|\,\, \sigma_\theta(\vec{x}) = 0.5 \}
+\]
+is called the \textbf{decision boundary} of the model.
+\paragraph{}
+This model allows for \textbf{binary classification}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.8\textwidth]{img/log_fun}
+  \caption{Logistic function $\sigma_{\theta}(\vec{x})$}
+\end{figure}
+The loss function for logistic regression is rooted in information gain, so $L$
+is defined to be the cross-entropy of the data:
+\[
+  L(\theta) = -\sum_{i = 1}^m y_i\log (f_\theta(\vec{x}_i)) + (1 - y_i)\log(1 - f_\theta(\vec{x}_i))
+\]
+Optimise this with gradient descent as before.
+\subsubsection{Multi-Class Logistic Regression}
+\paragraph{One-vs-All}: For $k$ classes train $k$ classifiers: for each class
+$c_i$ one class is $c_i$ and one class is everything else. Then, to predict,
+take prediction with highest confidence.
+\paragraph{One-vs-One}: For $k$ classes train $\binom{k}{2}$ classifier: one for
+each pair of $c_i, c_j$ classes. Then, take a majority vote.
 \section{SVMs}
 
 \section{Neural Networks and Deep Learning}

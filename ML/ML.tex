@@ -1,0 +1,94 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+\title{CS5014: Machine Learning, Revision Notes}
+\author{Gergely Flamich}
+
+\renewcommand{\vec}[1]{\mathbf{#1}}
+\newcommand{\norm}[1]{\,||#1||\,}
+\newcommand{\diff}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\Reals}{\mathbb{R}}
+
+\begin{document}
+
+\maketitle
+
+\section{Overview}
+In ML, we usually have some data in the following general setup:
+\begin{itemize}
+\item \textbf{Features}: literally any sort of observations form the real world,
+  collected conveniently into a matrix:
+  \[
+    X =
+    \begin{bmatrix}
+      x_{1, 1} & x_{1, 2} & \hdots & x_{1, n} \\
+      x_{2, 1} & x_{2, 2} & \hdots & x_{2, n} \\
+      \vdots & \vdots & \ddots & \vdots \\
+      x_{m, 1} & x_{m, 2} & \hdots & x_{m, n}
+    \end{bmatrix}
+  \]
+  where each column $\vec{x}^{(i)}$ contains $m$ observations of the $i$-th feature
+\item \textbf{Labels}: In supervised learning we also have another set of data,
+  called the ground truth of the object we are trying to predict from the
+  features. These are conveniently colleted into a vector $\vec{y}$ with $m$
+  elements, each $y_i$ corresponding to a set of observations, row $\vec{x}_i$
+  in $X$.
+\end{itemize}
+The general assumption for supervised learning is that each feature is associated with a random variable
+$X_i$ over some distributions and the ground truth is associated with a random
+variable $Y$ over some distribution. It is usually assumed that we know the
+distributions of $X_i$ and $Y$ is hidden. fianlly, we assume that there is some
+function $f$ such that
+\[
+  Y = f(\vec{X}, \theta) + \epsilon
+\]
+for some model paramters $\theta$ and some small error term $\epsilon$.
+Then, the way we will perform prediction is by using the distribution
+\[
+  \hat{Y} = f(\vec{X}, \theta).
+\]
+$f$ is usually referred to as the \textbf{model function}.
+\section{Regression Problems}
+One of the simplest models $f$ relies on the further assumption that $Y$ depends
+linearly on $\vec{X}$. In particular,
+\[
+  \hat{Y} = f(\vec{X}, \theta) = \vec{X}\theta + b
+\]
+where $b$ is called the \textbf{bias}. No
+Then, we can quantify the goodness-of-fit of the model, by the squared
+error, specified by
+\[
+  L(\theta, b) = \norm{\vec{y} - f(X, \theta, b)}^2 
+\]
+Then, to find the optimal set of parameters theta, we can differentiate 
+\begin{align*}
+  \diff{L}{\theta} &= \diff{}{\theta}{\norm{\vec{y} - f(X, \theta, b)}^2 } \\
+                   &= 2 \norm{\vec{y} - f(X, \theta, b)}^2 \diff{}{\theta}\norm{\vec{y} - f(X, \theta, b)}  \\
+                   &= 2 \norm{\vec{y} - f(X, \theta, b)} \frac{(\vec{y} - f(X, \theta, b))^T}{2\norm{\vec{y} - f(X, \theta, b)}}\diff{}{\theta}\vec{y} - f(X, \theta, b)  \\
+                   &= (\vec{y} - X\theta)^T \cdot -X
+\end{align*}
+Now to find the minimum, set $\diff{L}{\theta} = 0$.
+\begin{align*}
+  0 &= -\vec{y}^TX + \theta^TX^TX \\
+  \vec{y}^TX &= \theta^TX^TX \\
+  \vec{y}^TX(X^TX)^{-1} &= \theta^T \\
+\end{align*}
+Hence
+\[
+  \theta = (X^TX)^{-1}X^T\vec{y}
+\]
+The above is called the \textbf{normal equation}.
+An alternative way to solve the above problem is \textbf{gradient descent}.
+Iterate
+\[
+  \theta \leftarrow \theta - \alpha \cdot \nabla L
+\]
+for some appropriate $\alpha \in \Reals$. Then it can be shown that the $\theta$ converges
+to the minimal solution. $\alpha$ is called the \textbf{learning rate}.
+\section{SVMs}
+
+\section{Neural Networks and Deep Learning}
+
+\end{document}

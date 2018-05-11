@@ -9,9 +9,15 @@
 \author{Gergely Flamich}
 
 \renewcommand{\vec}[1]{\mathbf{#1}}
+\renewcommand{\|}{\,\,|\,\,}
 \newcommand{\norm}[1]{\,||#1||\,}
 \newcommand{\diff}[2]{\frac{\partial #1}{\partial #2}}
 \newcommand{\Reals}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
 
 \begin{document}
 
@@ -319,7 +325,100 @@ $c_i$ one class is $c_i$ and one class is everything else. Then, to predict,
 take prediction with highest confidence.
 \paragraph{One-vs-One}: For $k$ classes train $\binom{k}{2}$ classifier: one for
 each pair of $c_i, c_j$ classes. Then, take a majority vote.
+\section{Bayesian Decision Theory}
+Main idea of Bayesian Decision Theory: minimise expected loss.
+\subsection{MLE}
+Assume set of distributions: $\{p_\theta \| \theta \in \Theta \}$. \\
+Assume the data is an i.i.d. sample of the above family: $X_1, \hdots, X_n \sim
+p_\theta$.\\
+Then, attempt to estimate the true $\theta$ that generated the sample:
+\[
+  \theta_{MLE} = \argmax_{\theta \in \Theta} \Prob [ X \| \theta ]
+\]
+where $\Prob[ X \| \theta]$ is called the \textbf{likelihood function}.
+\paragraph{Pros}
+\begin{itemize}
+\item Easy to compute
+\item Interpretable
+\item Nice asymptotic properties
+\item Invariant under reparametrisation:
+  \[
+    g(\theta_{MLE}) = (g(\theta))_{MLE}
+  \]
+\end{itemize}
+\paragraph{Cons}
+\begin{itemize}
+\item Point estimate
+\item Overfitting
+\end{itemize}
+\subsection{MAP}
+Similar assumptions to MLE.
+Instead of the likelihood function, estimate the \textbf{posterior distribution}
+of $\theta$. We wanna estimate $\Prob[X \land \theta]$, we can use Bayes' Rule:
+\[
+  \Prob[\theta \| X] = \frac{\Prob[X \| \theta] \Prob[\theta]}{\Prob[X]}
+\]
+here $\Prob[X]$ is constant, so we need to minimise
+\[
+  \theta_{MAP} = \argmax_{\theta \in \Theta} \Prob[\theta \| X] = \argmax_{\theta \in \Theta}\Prob[X \| \theta] \Prob[\theta]
+\]
+\paragraph{Pros}
+\begin{itemize}
+\item Easy to compute
+\item Intrerpretable
+\item Avoids overfitting by putting a prior on $\theta$ - Regularisation
+\item Converges to MLE
+\end{itemize}
+\paragraph{Cons}
+\begin{itemize}
+\item Point estimate
+\item Not invariant under reparametrisation:
+  \[
+    g(\theta_{MAP}) \neq (g(\theta))_{MAP}
+  \]
+\item Must assume prior on $\theta$
+\end{itemize}
+\subsection{Density Estimation}
+\paragraph{Local density estimation}
+assume that the density of the data is locally constant. Then for some volume
+$V$ around some point $\vec{X} = [X_1, \hdots, X_P]^T$, if we have $K$ samples
+in the volume out of a total of $N$ samples, then define
+\[
+  \Prob[X] = \frac{K}{NV}.
+\]
+How we pick $K$ and $V$ determines the method.
+\paragraph{Histograms:} split up the space into a grid of cubes called
+\textbf{bins}. Then, we fixed $V$ and we'll get $K$ by counting up the samples
+in every bin.
+\paragraph{Pro:} Cheap
+\paragraph{Con:} often too crude.
+\paragraph{Parzen density estimation:} Given some point $X$, assume that the
+density is some local function of nearby samples. So define:
+\[
+  \Prob[X] = \frac1N \sum_{n = 1}^N \frac1V \cdot K\left( \frac{X - x_n}{h} \right)
+\]
+where $h$ is the window size, i.e. it controls the locality of the
+\textbf{kernel function} $K$.
+The kernel functions must be symmetric probability density functions
+themselves.\\
+Examples:
+\begin{itemize}
+\item Tophat kernel: $K$ is a uniform density function between $-h/2$ and $h/2$.
+\item Gaussian: $K = \mathcal{N}(0, h/2)$.
+\item Exponential
+\item Linear
+\end{itemize}
+\subsection{K-Nearest Neighbours}
+If we fix $K$ and let $V$ grow according to
+\[
+  \Prob[X] = \frac{K}{NV}
+\]
+then we can estimate class likelihoods according to Bayes' Rule:
+\[
+  \Prob[C_i \| X] = \frac{\Prob[X \| C_i]\Prob[C_i]}{\Prob[X]} = \frac{K_i}{K}
+\]
 \section{SVMs}
+
 
 \section{Neural Networks and Deep Learning}
 

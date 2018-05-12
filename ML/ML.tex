@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{graphicx}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
 \usepackage{float}
 
 \title{CS5014: Machine Learning, Revision Notes}
@@ -15,6 +16,8 @@
 \newcommand{\Reals}{\mathbb{R}}
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\Prob}{\mathbb{P}}
+
+\DeclareMathOperator*{\sgn}{sgn}
 
 \DeclareMathOperator*{\argmax}{arg\,max}
 \DeclareMathOperator*{\argmin}{arg\,min}
@@ -417,9 +420,219 @@ then we can estimate class likelihoods according to Bayes' Rule:
 \[
   \Prob[C_i \| X] = \frac{\Prob[X \| C_i]\Prob[C_i]}{\Prob[X]} = \frac{K_i}{K}
 \]
-\section{SVMs}
-
-
+\section{Maximal Margin Classifiers \& SVMs}
+\paragraph{Main idea:} Instead of best fit to all of data, try to
+\textbf{separate} it as best as possible, so focus more on data close to the margin.
+So, maximise margin separating the data.
+\subsection{Setup}
+Decision function:
+\[
+  \hat{y} = \sgn(\vec{x}^T\beta + \beta_0)
+\]
+Distance to the margin:
+\[
+  y_i(\vec{x}^T\beta + \beta_0) \geq 0\quad \forall i \in \{1, \hdots, N\}
+\]
+Then, maximise this distance by enforcing it to be greater than some margin $M$:
+\[
+ \frac{1}{\norm{\beta}} y_i(\vec{x}^T\beta + \beta_0) \geq M
+\]
+A \textbf{support vector} is any vector that is direcly on the margin, i.e. the
+above inequality is an equality. Setting $M = \frac{1}{\norm{\beta}}$:
+\[
+  y_i(\vec{x}^T\beta + \beta_0) = 1
+\]
+This is a \textbf{hard margin}, because this is only possible to be solved if
+the data is \textbf{separable} and it fails if it isn't.
+\subsection{Soft Margin Relaxation}
+Allow a few points be on the wrong side. Introduce some slack variables $\xi =
+[\xi_1,\hdots, \xi_N]$, that will allow us to let data points cross the margin:
+\[
+  y_i(x_i^T\beta + \beta_0) \leq 1 \quad \to \quad y_i(x_i^T\beta + \beta_0)
+  \leq 1 - \xi_i
+\]
+And then constrain $\xi$ to not grow too big:
+\[
+  \xi_i \leq 0, \quad \norm{\xi}_1 \leq const
+\]
+\paragraph{Note:} $\xi_i \geq 0$: $\vec{x}_i$ is inside margin. $\xi_i > 1$:
+$\vec{x}_i$ is miscalssified.
+The above can be reformulated to a cost function as:
+\[
+  J(\beta) = \frac1N \sum_{i = 1}^N \underbrace{(1 - y_i(x_i^T\beta +
+    \beta_0))_+}_{\text{hinge loss}} + \underbrace{\lambda \norm{\beta}_2^2}_{\text{regularisation}}
+\]
+\paragraph{Note:} The correctly classified data points don't contribute to the
+loss at all.
+\paragraph{Note:} Hinge loss is not differentiable at the hinge point: use
+\textbf{subgradient descent}: pick subgradient that minimises loss the most.
+\subsection{Kernel Trick}
+Turn the soft margin classification problem into an objective function throught
+\textbf{Lagrange relaxation}:
+\[
+  L_p = \underbrace{\frac12 \norm{\beta}^2}_{\text{optimisation objective}} +
+  \underbrace{C \sum_{i=1}^N \xi_i}_{\text{slack variable constraint}} -
+  \underbrace{\sum_{i = 1}^N \alpha_i(y_i(\vec{x}_i^T\beta + \beta_0 ) - (1 -
+    \xi_i))}_{\text{maximal margin condition}} -
+  \underbrace{\sum_{i=1}^N \mu_i \xi_i}_{\text{non-negativity condition}}
+\]
+where $C, \alpha_i, \mu_i$ are called \textbf{Lagrange multipliers}, they
+represent the hard constraints.
+This is called the \textbf{primal problem} and hard to optimise: turn it into
+the \textbf{dual problem}.
+We differentiate with respect to $\beta, \beta_0, \xi_i$ and set the derivatives
+to 0 since we know that any solution must be a minimum so
+\[
+  \beta = \sum_{i = 1}^N \alpha_iy_i\vec{x}_i\quad\quad 0 = \sum_{i = 1}^N
+  \alpha_iy_i\quad\quad \alpha_i = C - \mu_i
+\]
+Using these constraints and putting it back into $L_P$ and simplifying, we get
+the \textbf{dual function}:
+\[
+  L_D = \sum_{i = 1}\alpha_i - \frac12 \sum_{i = 1}^N \sum_{j = 1}^N
+  \alpha_i\alpha_jy_iy_j\underbrace{x_i^tx_j}_{\text{dot product}}
+\]
+We can use the dual function to optimise $\beta$.
+Similarly, classification, we have
+\[
+  \beta_0 = \sum_{i = 1}^N \hat{\alpha}_iy_i\langle {\vec{x}, \vec{x}_i} \rangle
+\]
+We can perform learning and classification if we know the dot product. The idea
+then, is to replace the original dot product with different ones: these are
+called \textbf{kernels}.
+Examples:
+\begin{itemize}
+\item Polynomial kernel: corresponds to basis expansion
+  \[
+    K(\vec{x}, \vec{x}') = (1 - \langle {\vec{x}, \vec{x}'} \rangle)^d
+  \]
+\item Radial Basis Function: Considers the distance as distances of normal distibutions
+  \[
+    K(\vec{x}, \vec{x}') = \exp(-\gamma\norm{\vec{x} - \vec{x}'}^2)
+  \]
+\item Neural Network Kernel
+\end{itemize}
 \section{Neural Networks and Deep Learning}
-
+Feature selection is difficult and requires a lot of domain knowledge: how about
+we let the machine do it?
+\begin{itemize}
+\item Have $L \geq 2$ layers: first layer is the \textbf{input layer}, last
+  layer is the \textbf{output layer}. Everything in between is a \textbf{hidden layer}. 
+\item Each layer has some $\vec{z}_i \in \Reals^{m_i}$ units. Then, each unit on some layer is
+  connected to every unit from the previous layer in a linear fashion:
+  \[
+    \forall 0 \leq i \leq L-1:\quad\Theta^{(i)} \in \Reals^{m_{i - 1} \times
+      m_i}:\quad \vec{z}_i = \vec{a}_{i-1}^T\Theta^{(i)} + \vec{b}_i. 
+  \]
+  where $\vec{b}_i$ are called the bias of the layer
+  Then, we calculate the \textbf{activations} of the units:
+  \[
+    \vec{a}_i = g(\vec{z}_i)
+  \]
+  for some $g:\Reals \to \Reals$.
+  Usual picks for $g$:
+  \begin{itemize}
+  \item Logistic function: $\sigma$
+  \item Hyperbolic tangent: $\tanh$
+  \item Rectified Linear Unit (ReLU): $g(x) = x_+$
+  \end{itemize}
+\item Then, a single \textbf{forward propagation} of the network can be written
+  as:
+  \[
+    \hat{\vec{y}} = g(\hdots g(g(\vec{x}^T\Theta^{(1)})^T\Theta^{(2)})^T\hdots \Theta^{(L)})
+  \]
+  This can be used to perform regression or classification.
+\item The cost function is
+  \[
+    J(\Theta) = \frac{1}{m} \sum_{i = 1}^m L(\vec{y}, \hat{\vec{y}}) +
+    \frac{\lambda}{2m}\sum_{l = 1}^L \norm{\Theta^{l}}^2
+  \]
+  where the loss fucntion $L$ can be cross-entropy loss, squared error, etc.
+\item Then, to learn, we minimise $J$ using gradient descent. To calculate the
+  derivatives of $\Theta_{i, j}^{(l)}$, we need to calculate them for the layer
+  after them, and then use the chain rule.
+\item It is crucial to randomly initialise the weights of the network to prevent
+  two units learning the same thing in the network.
+\item During implementation, use gradient checking (numerically approximate the
+  derivatives and compare them with analytical results).
+\end{itemize}
+\subsection{Deep Learning}
+Classical ML pipeline:
+\[
+  \text{data} \underbrace{\to}_{\text{feature extraction}} \vec{x}
+  \underbrace{\to}_{\text{feature mapping}} h_m(\vec{x})
+  \underbrace{\to}_{\text{(linear) model}} \hat{\vec{y}}
+\]
+\paragraph{Deep Learning:} Any algorithm that attempts to learn intermediate
+representations of the data.
+\paragraph{Problems of DL:}
+\begin{itemize}
+\item Computational Complexity
+\item Availability of data: we need a lot of it to learn a lot of parameters correctly
+\item Overfitting
+\item (Highly) Non-convex cost function
+\item Vanishing gradient problem: 
+  if we have a sigmoid function $\sigma$, then if $0 << |x|$ then $\sigma'(x)
+  \approx \sigma'(x \pm h)$ for small $h > 0$, meaning that it is hard for the
+  network to learn. \\
+  \textbf{Solution:} use ReLU, leaky ReLU or Softplus. 
+\item Picking a network topology
+\end{itemize}
+\subsection{Regularisation techniques}
+\begin{itemize}
+\item Get a lot of data: this has the best regularisation effect
+\item Data augmentation: modify preexisting data sensibly to improve learning
+  outcome: e.g. add noise, rotate image, etc.
+\item Weight regularisation:
+  \[
+    J(\Theta) = L(\Theta) + \underbrace{\frac{\lambda}{2}\sum_{\substack{i,j,l
+          \\ i \neq 0}}
+      (\Theta_{i, j}^{(l)})^2}_{\text{regularisation term}}
+  \]
+\item Early stopping: if the loss function stagnates, stop the learning process
+  to stop overfitting because the \textbf{validation loss might increase}!
+\item Dropout: for each unit, do not consider it with some probability $0 < p <
+  1$. This adds natural noise, as we're training only on partial data and forces
+  the network to be much more general.
+\item Stochastic / Minibatch Gradient Descent: instead of calculating gradients
+  based on the entire dataset, introduce noise by shuffling the dataset,
+  splitting it up into smaller batches and calculating gradients based on the
+  smaller batches
+  \paragraph{Note:} we need to decrease the learning rate otherwise we will
+  never converge. This is called \textbf{weight decay}.
+  \paragraph{Note:} SGD improves behaviour around saddle points / local minima.
+\item Batch normalisation: after the activation of every layer, normalise the
+  activations! Speeds up training and has a regularisation effect.
+\end{itemize}
+\paragraph{Weight sharing:} instead of learning a bunch of different stuff, we
+could share some weights along nodes and help them optimise the features
+extracted by those shared weights. Leads to CNNs.
+\paragraph{Max-pooling:} reduce the dimensionality of the data by throwing away
+locally insignificant data.
+\paragraph{Recent DL successes:} AlexNet, ResNet
+\section{Unsupervised Learning}
+\subsection{K-means clustering}
+\begin{enumerate}
+\item Start with $K$ randomly initialised centroids $\mu_i$
+\item During each iteration, find the closest centroid to each data point
+  \[
+    c_i \leftarrow \min_{k \in \{1,\hdots, K\}} \norm{\mu_i - \vec{x}_i}
+  \]
+\item set the centroids to the means of their assigned datapoints
+  \[
+    \mu_k \leftarrow \frac{1}{\text{(\# of datapoints in cluster i)}} \sum_{c_i
+      = k} x_i
+  \]
+\item Repeat 2. and 3. until convergence
+\end{enumerate}
+To evaluate the clustering algorithm, we can use the loss function
+\[
+  J(\vec{c}, \vec{\mu}) = \frac{1}{m} \sum_{i = 1}^m \norm{\vec{x}_i - \mu_{c_i}}^2,
+\]
+i.e. we want to minimise the total mean distance.
+Then, to find the best clustering, run the algorithm 100 times, say, and use the
+one that minimises $J$.
+\subsection{PCA}
+Dimensionality reduction: calculate a new orthogonal basis for the data and
+throw away axes along which the variance is low
 \end{document}
